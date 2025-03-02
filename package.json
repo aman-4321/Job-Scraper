@@ -5,7 +5,14 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
-    "start": "node dist/index.js"
+    "migrate:prod": "npx prisma migrate deploy && npx prisma generate",
+    "migrate:dev": "npx prisma migrate dev",
+    "start": "tsc -b && node dist/index.js",
+    "dev:local": "tsc-watch --onSuccess \"node dist/index.js\"",
+    "prisma:migrate": "pnpm migrate:prod",
+    "dev:docker": "pnpm prisma:migrate && pnpm start",
+    "seed": "tsc -b && node dist/seeds/user.seed.js",
+    "build": "tsc -b"
   },
   "keywords": [],
   "author": "",
