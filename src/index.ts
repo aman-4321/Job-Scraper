@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import { CronJob } from "cron";
 import { runJobScraper } from "./services/jobScraper.service";
@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 app.use("/api/v1/jobs", jobRouter);
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "ok",
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}`);
