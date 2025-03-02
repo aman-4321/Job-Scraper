@@ -48,6 +48,10 @@ export async function runJobScraper() {
     );
 
     console.log("All job scraping completed successfully");
+    const endTime = new Date();
+    console.log(
+      `Last scraped: ${endTime.toLocaleTimeString()} on ${endTime.toLocaleDateString()}`
+    );
   } catch (error) {
     console.error("Error during scheduled job scraping:", error);
   }

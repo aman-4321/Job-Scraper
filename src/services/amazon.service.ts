@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import { parseISO } from "date-fns";
+import { getRandomUserAgent } from "../useragents";
 
 const prisma = new PrismaClient();
 
@@ -32,7 +33,15 @@ export async function fetchAmazonJobs() {
       const url = `https://www.amazon.jobs/en/search.json?radius=24km&facets[]=normalized_country_code&facets[]=normalized_state_name&facets[]=normalized_city_name&facets[]=location&facets[]=business_category&facets[]=category&facets[]=schedule_type_id&facets[]=employee_class&facets[]=normalized_location&facets[]=job_function_id&facets[]=is_manager&facets[]=is_intern&offset=${offset}&result_limit=${limit}&sort=relevant&latitude=&longitude=&loc_group_id=&loc_query=India&base_query=&city=&country=IND&region=&county=&query_options=&=`;
 
       console.log(`Fetching Amazon jobs with offset ${offset}...`);
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        headers: {
+          "User-Agent": getRandomUserAgent(),
+          Accept: "application/json",
+          "Accept-Language": "en-US,en;q=0.9",
+          Referer: "https://www.amazon.jobs/en/",
+          Connection: "keep-alive",
+        },
+      });
 
       if (
         !response.data ||

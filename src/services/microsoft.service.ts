@@ -1,6 +1,7 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 import { parseISO } from "date-fns";
+import { getRandomUserAgent } from "../useragents";
 
 const prisma = new PrismaClient();
 
@@ -43,8 +44,10 @@ export async function fetchMicrosoftJobs(
         },
         headers: {
           Accept: "application/json",
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "User-Agent": getRandomUserAgent(),
+          "Accept-Language": "en-US,en;q=0.9",
+          Referer: "https://careers.microsoft.com/",
+          Connection: "keep-alive",
         },
       });
 
