@@ -4,9 +4,20 @@ import { CronJob } from "cron";
 import { runJobScraper } from "./services/jobScraper.service";
 import { prisma } from "./db";
 import { jobRouter } from "./routes/job.routes";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+const limiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 50,
+  message: "Too many requests from this IP, please try again later",
+});
+
+if (process.env.NODE_ENV === "production") {
+  app.use(limiter);
+}
 
 function getTimeStamp() {
   const now = new Date();
@@ -30,12 +41,12 @@ app.listen(PORT, () => {
 
   console.log(`${getTimeStamp()} 🔄 Executing initial job scraper run...`);
   runJobScraper().catch((err) =>
-    console.error(`${getTimeStamp()} Initial job scraper run failed:`, err)
+    console.error(`${getTimeStamp()} Initial job scraper run failed:`, err),
   );
 
   const scheduledJob = new CronJob("0 0 * * * *", async () => {
     console.log(
-      `${getTimeStamp()} ⏰ CRON TRIGGER: Starting scheduled job scraping`
+      `${getTimeStamp()} ⏰ CRON TRIGGER: Starting scheduled job scraping`,
     );
     try {
       await runJobScraper();
@@ -52,16 +63,16 @@ app.listen(PORT, () => {
     console.log(
       `${getTimeStamp()} ❤️ Scheduler heartbeat check. Next scheduled run: ${scheduledJob
         .nextDate()
-        .toLocaleString()}`
+        .toLocaleString()}`,
     );
 
     const used = process.memoryUsage();
     console.log(
       `${getTimeStamp()} 📊 Memory usage: RSS ${Math.round(
-        used.rss / 1024 / 1024
+        used.rss / 1024 / 1024,
       )}MB | Heap ${Math.round(used.heapUsed / 1024 / 1024)}/${Math.round(
-        used.heapTotal / 1024 / 1024
-      )}MB`
+        used.heapTotal / 1024 / 1024,
+      )}MB`,
     );
   }, 3600000);
 
