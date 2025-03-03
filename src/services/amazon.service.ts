@@ -85,7 +85,10 @@ export async function fetchAmazonJobs() {
 }
 
 export async function processAndSaveAmazonJobs(jobs: AmazonJob[]) {
-  console.log(`Processing ${jobs.length} jobs for database insertion...`);
+  console.log(`Processing ${jobs.length} Amazon jobs...`);
+
+  let newJobsAdded = 0;
+  let existingJobsCount = 0;
 
   for (const job of jobs) {
     try {
@@ -100,7 +103,7 @@ export async function processAndSaveAmazonJobs(jobs: AmazonJob[]) {
       });
 
       if (existingJob) {
-        console.log(`Job already exists: ${job.title} at ${job.company_name}`);
+        existingJobsCount++;
       } else {
         await prisma.jobs.create({
           data: {
@@ -113,36 +116,40 @@ export async function processAndSaveAmazonJobs(jobs: AmazonJob[]) {
           },
         });
 
-        console.log(`Added new job: ${job.title} at ${job.company_name}`);
+        newJobsAdded++;
       }
-    } catch (error) {
-      console.error(`Error processing job ${job.title}:`, error);
+    } catch (error: any) {
+      if (error.code === "P2002" && error.meta?.target?.includes("jobUrl")) {
+        existingJobsCount++;
+      } else {
+        console.error(`Error processing job ${job.title}:`, error);
+      }
     }
   }
+
+  console.log(
+    `Amazon scraping summary: ${newJobsAdded} new jobs added, ${existingJobsCount} already existed`
+  );
+
+  return newJobsAdded;
 }
 
 async function main() {
   try {
     console.log("Fetching Amazon job listings...");
     const jobs = await fetchAmazonJobs();
-    console.log(`Found ${jobs.length} job listings`);
+    console.log(`Found ${jobs.length} Amazon job listings`);
 
     if (jobs.length > 0) {
-      console.log("----------------------------------------");
-      jobs.forEach((job, index) => {
-        console.log(`Job #${index + 1}:`);
-        console.log(`Title: ${job.title}`);
-        console.log(`Location: ${job.normalized_location}`);
-        console.log(`Posted Date: ${job.posted_date}`);
-        console.log(`URL: ${job.url}`);
-        console.log("----------------------------------------");
-      });
-
-      await processAndSaveAmazonJobs(jobs);
-      console.log("Job scraping completed successfully");
+      const newJobsAdded = await processAndSaveAmazonJobs(jobs);
+      console.log(
+        `Amazon jobs processing completed: ${newJobsAdded} new jobs added`
+      );
+    } else {
+      console.log("No Amazon jobs found to process");
     }
   } catch (error) {
-    console.error("Error in job scraping process:", error);
+    console.error("Error in Amazon job scraping process:", error);
   } finally {
     await prisma.$disconnect();
   }

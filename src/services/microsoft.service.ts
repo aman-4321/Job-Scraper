@@ -95,9 +95,10 @@ export async function fetchMicrosoftJobs(
 }
 
 export async function processAndSaveMicrosoftJobs(jobs: MicrosoftJob[]) {
-  console.log(
-    `Processing ${jobs.length} Microsoft jobs for database insertion...`
-  );
+  console.log(`Processing ${jobs.length} Microsoft jobs...`);
+
+  let newJobsAdded = 0;
+  let existingJobsCount = 0;
 
   for (const job of jobs) {
     try {
@@ -108,7 +109,7 @@ export async function processAndSaveMicrosoftJobs(jobs: MicrosoftJob[]) {
       });
 
       if (existingJob) {
-        console.log(`Job already exists: ${job.title} at Microsoft`);
+        existingJobsCount++;
       } else {
         await prisma.jobs.create({
           data: {
@@ -121,34 +122,37 @@ export async function processAndSaveMicrosoftJobs(jobs: MicrosoftJob[]) {
           },
         });
 
-        console.log(`Added new job: ${job.title} at Microsoft`);
+        newJobsAdded++;
       }
-    } catch (error) {
-      console.error(`Error processing job ${job.title}:`, error);
+    } catch (error: any) {
+      if (error.code === "P2002" && error.meta?.target?.includes("jobUrl")) {
+        existingJobsCount++;
+      } else {
+        console.error(`Error processing job ${job.title}:`, error);
+      }
     }
   }
+
+  console.log(
+    `Microsoft scraping summary: ${newJobsAdded} new jobs added, ${existingJobsCount} already existed`
+  );
+
+  return newJobsAdded;
 }
 
 export async function main() {
   try {
     console.log("Fetching Microsoft job listings...");
     const jobs = await fetchMicrosoftJobs();
-    console.log(`Found ${jobs.length} job listings:`);
+    console.log(`Found ${jobs.length} Microsoft job listings`);
 
     if (jobs.length > 0) {
-      console.log("----------------------------------------");
-      jobs.forEach((job, index) => {
-        console.log(`Job #${index + 1}:`);
-        console.log(`Title: ${job.title}`);
-        console.log(`Location: ${job.location}`);
-        console.log(`Job ID: ${job.jobId}`);
-        console.log(`Posted Date: ${job.posted_date}`);
-        console.log(`URL: ${job.url}`);
-        console.log("----------------------------------------");
-      });
-
-      await processAndSaveMicrosoftJobs(jobs);
-      console.log("Microsoft jobs processing completed successfully");
+      const newJobsAdded = await processAndSaveMicrosoftJobs(jobs);
+      console.log(
+        `Microsoft jobs processing completed: ${newJobsAdded} new jobs added`
+      );
+    } else {
+      console.log("No Microsoft jobs found to process");
     }
   } catch (error) {
     console.error("Error in Microsoft job scraping process:", error);

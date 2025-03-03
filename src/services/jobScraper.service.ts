@@ -1,58 +1,61 @@
 import { fetchAmazonJobs, processAndSaveAmazonJobs } from "./amazon.service";
-import { prisma } from "../db";
 import {
   fetchMicrosoftJobs,
   processAndSaveMicrosoftJobs,
 } from "./microsoft.service";
 
+function getTimeStamp() {
+  const now = new Date();
+  return `[${now.toLocaleDateString()} ${now.toLocaleTimeString()}]`;
+}
+
 export async function runJobScraper() {
-  console.log(`Running job scrapers at ${new Date().toISOString()}`);
+  console.log(`${getTimeStamp()} 🚀 STARTING JOB SCRAPERS RUN`);
 
   try {
-    const existingMicrosoftJobsCount = await prisma.jobs.count({
-      where: { company: "Microsoft" },
-    });
-
-    const existingAmazonJobsCount = await prisma.jobs.count({
-      where: { company: "Amazon" },
-    });
-
-    console.log("Running Microsoft job scraper...");
+    console.log(`${getTimeStamp()} Starting Microsoft job scraper...`);
+    const microsoftStartTime = new Date();
     const microsoftJobs = await fetchMicrosoftJobs();
-    await processAndSaveMicrosoftJobs(microsoftJobs);
+    console.log(
+      `${getTimeStamp()} Microsoft fetch completed in ${
+        (new Date().getTime() - microsoftStartTime.getTime()) / 1000
+      } seconds. Found ${microsoftJobs.length} jobs.`
+    );
 
-    console.log("Running Amazon job scraper...");
+    const msNewJobs = await processAndSaveMicrosoftJobs(microsoftJobs);
+
+    console.log(`${getTimeStamp()} Starting Amazon job scraper...`);
+    const amazonStartTime = new Date();
     const amazonJobs = await fetchAmazonJobs();
-    await processAndSaveAmazonJobs(amazonJobs);
-
-    const newMicrosoftJobsCount = await prisma.jobs.count({
-      where: { company: "Microsoft" },
-    });
-
-    const newAmazonJobsCount = await prisma.jobs.count({
-      where: { company: "Amazon" },
-    });
-
     console.log(
-      `Microsoft scraping completed. Found ${
-        microsoftJobs.length
-      } jobs, added ${
-        newMicrosoftJobsCount - existingMicrosoftJobsCount
-      } new jobs to database.`
+      `${getTimeStamp()} Amazon fetch completed in ${
+        (new Date().getTime() - amazonStartTime.getTime()) / 1000
+      } seconds. Found ${amazonJobs.length} jobs.`
     );
 
+    const amzNewJobs = await processAndSaveAmazonJobs(amazonJobs);
+
+    console.log(`${getTimeStamp()} ✅ JOB SCRAPING COMPLETED SUCCESSFULLY`);
+    console.log(`${getTimeStamp()} Summary:`);
+    console.log(`${getTimeStamp()} - Microsoft: ${msNewJobs} new jobs added`);
+    console.log(`${getTimeStamp()} - Amazon: ${amzNewJobs} new jobs added`);
+
+    const totalRunTime =
+      (new Date().getTime() - microsoftStartTime.getTime()) / 1000;
     console.log(
-      `Amazon scraping completed. Found ${amazonJobs.length} jobs, added ${
-        newAmazonJobsCount - existingAmazonJobsCount
-      } new jobs to database.`
+      `${getTimeStamp()} Total execution time: ${totalRunTime.toFixed(
+        2
+      )} seconds`
     );
 
-    console.log("All job scraping completed successfully");
     const endTime = new Date();
     console.log(
-      `Last scraped: ${endTime.toLocaleTimeString()} on ${endTime.toLocaleDateString()}`
+      `${getTimeStamp()} Last scraped: ${endTime.toLocaleTimeString()} on ${endTime.toLocaleDateString()}`
     );
   } catch (error) {
-    console.error("Error during scheduled job scraping:", error);
+    console.error(
+      `${getTimeStamp()} ❌ ERROR during scheduled job scraping:`,
+      error
+    );
   }
 }
